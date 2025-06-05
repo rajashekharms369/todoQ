@@ -1,92 +1,245 @@
 import React, { useEffect, useState } from 'react';
-import { 
-    List, 
-    ListItem, 
-    ListItemText, 
-    Checkbox, 
-    IconButton, 
+import {
+    List,
+    ListItem,
+    ListItemText,
+    IconButton,
+    Checkbox,
     Typography,
-    Paper
+    Paper,
+    Box,
+    TextField,
+    Button,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
 } from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Task, taskService } from '../services/taskService';
 import { format } from 'date-fns';
-import { Task } from '../types/Task';
-import { api } from '../services/api';
 
-const TaskList: React.FC = () => {
+export const TaskList: React.FC = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
-
-    useEffect(() => {
-        loadTasks();
-    }, []);
+    const [open, setOpen] = useState(false);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [newTask, setNewTask] = useState<Partial<Task>>({
+        title: '',
+        description: '',
+        dueDate: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+        completed: false,
+    });
 
     const loadTasks = async () => {
         try {
-            const data = await api.getAllTasks();
+            const data = await taskService.getAllTasks();
             setTasks(data);
         } catch (error) {
             console.error('Error loading tasks:', error);
         }
     };
 
-    const handleToggle = async (task: Task) => {
+    useEffect(() => {
+        loadTasks();
+    }, []);
+
+    const handleCreateTask = async () => {
         try {
-            const updatedTask = await api.updateTask(task.id!, {
-                ...task,
-                completed: !task.completed
+            await taskService.createTask(newTask as Task);
+            setNewTask({
+                title: '',
+                description: '',
+                dueDate: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+                completed: false,
             });
-            setTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+            loadTasks();
+        } catch (error) {
+            console.error('Error creating task:', error);
+        }
+    };
+
+    const handleUpdateTask = async (task: Task) => {
+        try {
+            await taskService.updateTask(task.id!, task);
+            setEditingTask(null);
+            loadTasks();
         } catch (error) {
             console.error('Error updating task:', error);
         }
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDeleteTask = async (id: number) => {
         try {
-            await api.deleteTask(id);
-            setTasks(tasks.filter(task => task.id !== id));
+            await taskService.deleteTask(id);
+            loadTasks();
         } catch (error) {
             console.error('Error deleting task:', error);
         }
     };
 
+    const handleToggleComplete = async (task: Task) => {
+        try {
+            await taskService.updateTask(task.id!, {
+                ...task,
+                completed: !task.completed,
+            });
+            loadTasks();
+        } catch (error) {
+            console.error('Error toggling task completion:', error);
+        }
+    };
+
     return (
-        <Paper elevation={3} sx={{ maxWidth: 800, margin: '20px auto', padding: 2 }}>
-            <Typography variant="h5" component="h2" gutterBottom>
-                Tasks
-            </Typography>
+        <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+            <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="h5" gutterBottom>
+                    Add New Task
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                        label="Title"
+                        value={newTask.title}
+                        onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                        fullWidth
+                    />
+                    <TextField
+                        label="Description"
+                        value={newTask.description}
+                        onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                        fullWidth
+                        multiline
+                        rows={2}
+                    />
+                    <TextField
+                        label="Due Date"
+                        type="datetime-local"
+                        value={newTask.dueDate}
+                        onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                        fullWidth
+                        InputLabelProps={{ shrink: true }}
+                    />
+                    <Button
+                        variant="contained"
+                        onClick={handleCreateTask}
+                        disabled={!newTask.title}
+                    >
+                        Add Task
+                    </Button>
+                </Box>
+            </Paper>
+
             <List>
                 {tasks.map((task) => (
-                    <ListItem
+                    <Paper
                         key={task.id}
-                        secondaryAction={
-                            <IconButton edge="end" onClick={() => handleDelete(task.id!)}>
-                                <DeleteIcon />
-                            </IconButton>
-                        }
+                        sx={{
+                            mb: 2,
+                            p: 2,
+                            backgroundColor: task.completed ? '#f5f5f5' : 'white',
+                        }}
                     >
-                        <Checkbox
-                            edge="start"
-                            checked={task.completed}
-                            onChange={() => handleToggle(task)}
-                        />
-                        <ListItemText
-                            primary={task.title}
-                            secondary={
-                                <>
-                                    <Typography component="span" variant="body2" color="text.primary">
-                                        {task.description}
-                                    </Typography>
-                                    <br />
-                                    Due: {format(new Date(task.dueDate), 'PPP')}
-                                </>
+                        <ListItem
+                            secondaryAction={
+                                <Box>
+                                    <IconButton
+                                        edge="end"
+                                        onClick={() => setEditingTask(task)}
+                                    >
+                                        <EditIcon />
+                                    </IconButton>
+                                    <IconButton
+                                        edge="end"
+                                        onClick={() => task.id && handleDeleteTask(task.id)}
+                                    >
+                                        <DeleteIcon />
+                                    </IconButton>
+                                </Box>
                             }
-                        />
-                    </ListItem>
+                        >
+                            <Checkbox
+                                checked={task.completed}
+                                onChange={() => handleToggleComplete(task)}
+                            />
+                            <ListItemText
+                                primary={
+                                    <Typography
+                                        sx={{
+                                            textDecoration: task.completed ? 'line-through' : 'none',
+                                        }}
+                                    >
+                                        {task.title}
+                                    </Typography>
+                                }
+                                secondary={
+                                    <>
+                                        <Typography variant="body2" color="text.secondary">
+                                            {task.description}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            Due: {format(new Date(task.dueDate), 'PPp')}
+                                        </Typography>
+                                    </>
+                                }
+                            />
+                        </ListItem>
+                    </Paper>
                 ))}
             </List>
-        </Paper>
-    );
-};
 
-export default TaskList; 
+            <Dialog open={!!editingTask} onClose={() => setEditingTask(null)}>
+                {editingTask && (
+                    <>
+                        <DialogTitle>Edit Task</DialogTitle>
+                        <DialogContent>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+                                <TextField
+                                    label="Title"
+                                    value={editingTask.title}
+                                    onChange={(e) =>
+                                        setEditingTask({ ...editingTask, title: e.target.value })
+                                    }
+                                    fullWidth
+                                />
+                                <TextField
+                                    label="Description"
+                                    value={editingTask.description}
+                                    onChange={(e) =>
+                                        setEditingTask({
+                                            ...editingTask,
+                                            description: e.target.value,
+                                        })
+                                    }
+                                    fullWidth
+                                    multiline
+                                    rows={2}
+                                />
+                                <TextField
+                                    label="Due Date"
+                                    type="datetime-local"
+                                    value={format(new Date(editingTask.dueDate), "yyyy-MM-dd'T'HH:mm")}
+                                    onChange={(e) =>
+                                        setEditingTask({
+                                            ...editingTask,
+                                            dueDate: e.target.value,
+                                        })
+                                    }
+                                    fullWidth
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                            </Box>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={() => setEditingTask(null)}>Cancel</Button>
+                            <Button
+                                onClick={() => handleUpdateTask(editingTask)}
+                                variant="contained"
+                            >
+                                Save
+                            </Button>
+                        </DialogActions>
+                    </>
+                )}
+            </Dialog>
+        </Box>
+    );
+}; 
