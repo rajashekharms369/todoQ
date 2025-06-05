@@ -1,7 +1,7 @@
 package com.todoq.controller;
 
-import com.todoq.model.Task;
-import com.todoq.repository.TaskRepository;
+import com.todoq.entity.Task;
+import com.todoq.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,45 +10,46 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tasks")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*")
 public class TaskController {
 
     @Autowired
-    private TaskRepository taskRepository;
+    private TaskService taskService;
 
     @GetMapping
     public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+        return taskService.getAllTasks();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Task> getTaskById(@PathVariable Long id) {
+        return taskService.getTaskById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public Task createTask(@RequestBody Task task) {
-        return taskRepository.save(task);
+        return taskService.createTask(task);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task taskDetails) {
-        return taskRepository.findById(id)
-                .map(task -> {
-                    task.setTitle(taskDetails.getTitle());
-                    task.setDescription(taskDetails.getDescription());
-                    task.setDueDate(taskDetails.getDueDate());
-                    task.setCompleted(taskDetails.isCompleted());
-                    if (taskDetails.isCompleted() && !task.isCompleted()) {
-                        task.setCompletedAt(java.time.LocalDateTime.now());
-                    }
-                    return ResponseEntity.ok(taskRepository.save(task));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            Task updatedTask = taskService.updateTask(id, taskDetails);
+            return ResponseEntity.ok(updatedTask);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteTask(@PathVariable Long id) {
-        return taskRepository.findById(id)
-                .map(task -> {
-                    taskRepository.delete(task);
-                    return ResponseEntity.ok().build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
+        try {
+            taskService.deleteTask(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 } 

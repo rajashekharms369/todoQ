@@ -1,6 +1,6 @@
 package com.todoq.repository;
 
-import com.todoq.model.Task;
+import com.todoq.entity.Task;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
