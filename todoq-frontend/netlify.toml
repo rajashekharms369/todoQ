@@ -1,0 +1,10 @@
+[build]
+  base = "todoq-frontend"
+  command = "npm run build"
+  publish = "build"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 
