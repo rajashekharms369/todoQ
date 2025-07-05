@@ -20,8 +20,9 @@ public class Section {
     @Column(length = 255, nullable = false)
     private String name;
 
-    @Column(name = "project_id", nullable = false)
-    private Integer projectId;
+    @ManyToOne
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
     @Column(name = "order")
     private Integer order;

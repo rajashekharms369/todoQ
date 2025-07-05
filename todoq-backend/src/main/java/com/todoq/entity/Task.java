@@ -21,6 +21,9 @@ public class Task {
     @EqualsAndHashCode.Include
     private int id;
 
+    @Column(length = 255)
+    private String title;
+
     @Column(nullable = false, length = 255)
     private String content;
 

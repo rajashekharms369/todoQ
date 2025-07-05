@@ -27,10 +27,9 @@ public class Comment {
     private LocalDateTime createdAt;
 
     @ManyToOne
-    @Column(name = "task_id", nullable = false)
-    private Integer taskId;
+    @JoinColumn(name = "task_id", nullable = false)
+    private Task task;
 
-    @ManyToOne
     @Column(name = "created_by", nullable = false)
     private Integer createdBy;
 

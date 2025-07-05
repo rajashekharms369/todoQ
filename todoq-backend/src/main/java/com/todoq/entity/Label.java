@@ -28,8 +28,8 @@ public class Label {
     private String color;
 
     @ManyToOne
-    @Column(name = "owner_id", nullable = false)
-    private Integer ownerId;
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;

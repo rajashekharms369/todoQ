@@ -30,7 +30,7 @@ public class SectionService {
                 .orElseThrow(() -> new RuntimeException("Section not found with id: " + id));
         // Set fields as needed
         section.setName(sectionDetails.getName());
-        section.setProjectId(sectionDetails.getProjectId());
+        section.setProject(sectionDetails.getProject());
         return sectionRepository.save(section);
     }
 
